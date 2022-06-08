@@ -1,4 +1,4 @@
-import * as Nightmare from 'nightmare';
+import * as Puppeteer from 'puppeteer';
 
 import { Locale } from './types/locales';
 import { normalizer } from './normalizer';
@@ -41,31 +41,31 @@ async function translator(
   text: string,
 ): Promise<string> {
   try {
-    const nightmare = new Nightmare({
-      ignoreDownloads: true,
-      waitTimeout: 60000,
-    });
+    const browser = await Puppeteer.launch();
+    const page = await browser.newPage();
 
     const url = `https://translate.google.com/?sl=${from}&text=${text}&tl=${to}&op=translate`;
-    const translatedText = await nightmare
-      .goto(url)
-      .evaluate(() => {
-        // click ok on google consent
-        const button = document.querySelector(
-          'form[action="https://consent.google.com/s"] button',
-        ) as HTMLElement;
-        if (button) {
-          button.click();
-        }
-      })
-      .wait('span[jsname=jqKxS]')
-      .wait(500)
-      .evaluate(
-        () =>
-          (document.querySelector('span[jsname=jqKxS]') as HTMLElement)
-            .innerText,
-      )
-      .end();
+    await page.goto(url);
+    page.evaluate(() => {
+      // click ok on google consent
+      const button = document.querySelector(
+        'form[action="https://consent.google.com/s"] button',
+      ) as HTMLElement;
+      if (button) {
+        button.click();
+      }
+    });
+
+    await page.waitForFunction(
+      () => !!document.querySelector('span[jsname=jqKxS]'),
+    );
+
+    const translatedText = await page.evaluate(
+      () =>
+        (document.querySelector('span[jsname=jqKxS]') as HTMLElement).innerText,
+    );
+
+    await browser.close();
 
     if (!translatedText) {
       throw new Error('Unable to translate.');
