@@ -41,7 +41,17 @@ async function translator(
   text: string,
 ): Promise<string> {
   try {
-    const browser = await Puppeteer.launch();
+    const browser = await Puppeteer.launch({
+      headless: true,
+      executablePath: process.env.CHROMIUM_PATH || null,
+      args: [
+        '--no-sandbox',
+        '--headless',
+        '--disable-gpu',
+        '--disable-dev-shm-usage',
+        '--disable-setuid-sandbox',
+      ],
+    });
     const page = await browser.newPage();
 
     const url = `https://translate.google.com/?sl=${from}&text=${text}&tl=${to}&op=translate`;
